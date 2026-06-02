@@ -16,7 +16,10 @@ app.use(cors());
 app.use(express.json());
 
 const authRoutes = require('./routes/authRoutes');
+const walletRoutes = require('./routes/walletRoutes');
+
 app.use('/api/auth', authRoutes);
+app.use('/api/wallet', walletRoutes);
 
 // Base/Ping Route
 app.get('/', (req, res) => {
