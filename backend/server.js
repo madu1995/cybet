@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
+const http = require('http');
+const initSocket = require('./config/socket');
 
 // Load env vars
 dotenv.config();
@@ -10,6 +12,8 @@ dotenv.config();
 connectDB();
 
 const app = express();
+const server = http.createServer(app);
+initSocket(server);
 
 // Middleware
 app.use(cors());
@@ -31,6 +35,6 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-    console.log(`⚡ Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+server.listen(PORT, () => {
+    console.log(`⚡ Server & Socket running on port ${PORT}`);
 });
