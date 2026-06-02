@@ -13,9 +13,12 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json()); // JSON data බාරගන්න
+app.use(express.json());
 
-// Base/Ping Route (Cold start එක චෙක් කරන්න සහ Vercel එකට ඕන වෙනවා)
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
+// Base/Ping Route
 app.get('/', (req, res) => {
     res.status(200).json({ 
         success: true, 
