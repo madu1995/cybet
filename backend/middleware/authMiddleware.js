@@ -12,7 +12,7 @@ const protect = async (req, res, next) => {
             token = req.headers.authorization.split(' ')[1];
 
             // Token එක Decode කරලා බලනවා (Valid ද කියලා)
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const decoded = jwt.verify(token, 'CYBER_SECRET_KEY');
 
             // Token එක ඇතුළේ තියෙන User ID එකෙන් යූසර්ව සොයාගෙන, password එක නැතුව request එකට ඇඩ් කරනවා
             req.user = await User.findById(decoded.id).select('-password');
