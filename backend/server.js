@@ -6,21 +6,20 @@ const { Server } = require('socket.io');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Bet = require('./models/Bet');
-const User = require('./models/User'); // 👤 මෙතන විතරක් ඉම්පෝර්ට් එක තිබ්බාම ඇති!
+const User = require('./models/User'); 
 
 const app = express();
 
-// 🌐 Express Middlewares (CORS සහ JSON බොඩි පාසර් එක උඩින්ම තියමු)
+// 🌐 Express Middlewares
 app.use(cors());
 app.use(express.json());
 
-// 📁 රවුට් ෆයිල් එක ලින්ක් කිරීම සහ සම්බන්ධ කිරීම
+// 📁 රවුට් ෆයිල් ලින්ක් කිරීම
 const betRoutes = require('./routes/bet'); 
 app.use('/api/bets', betRoutes);   
 
-// 📁 Admin රවුට් ෆයිල් එක ලින්ක් කිරීම
 const adminRoutes = require('./routes/admin'); 
-app.use('/api/admin', adminRoutes); // 🌐 Admin API එක සම්බන්ධ කිරීම     
+app.use('/api/admin', adminRoutes);    
 
 const server = http.createServer(app);
 
@@ -32,13 +31,10 @@ const io = new Server(server, {
 });
 
 // 📊 LEADERBOARD CALCULATION FUNCTION
-// (සර්වර් එකට මුලින්ම පේන්න මේ ෆන්ක්ෂන් එක උඩින්ම ලිව්වා මචන්)
 const emitLeaderboard = async () => {
     try {
-        // 1. ඩේටාබේස් එකේ ඉන්න හැමෝම බැලන්ස් එක වැඩිම කෙනාගේ ඉඳන් සෝට් කරලා ගන්නවා
         const allPlayers = await User.find({}, 'name username balance role').sort({ balance: -1 });
 
-        // 2. හැම ප්ලේයර් කෙනෙක්ටම Rank එකක් (1, 2, 3...) ඇතුළත් කරනවා
         const rankedPlayers = allPlayers.map((player, index) => ({
             _id: player._id,
             name: player.name,
@@ -48,10 +44,8 @@ const emitLeaderboard = async () => {
             rank: index + 1 
         }));
 
-        // 3. UI එකේ පෙන්වන්න Top 10 විතරක් කපා ගන්නවා
         const top10Players = rankedPlayers.slice(0, 10);
 
-        // 4. හැම සොකට් කනෙක්ෂන් එකකටම වෙන වෙනම ඩේටා බ්‍රෝඩ්කාස්ට් කරනවා
         const sockets = await io.fetchSockets();
         for (let socket of sockets) {
             socket.emit('leaderboard_update', {
@@ -70,7 +64,6 @@ const dbURI = "mongodb+srv://cybetapp_db_user:Tz7GYw8UGFkX4UO0@cluster0.dz0c9df.
 mongoose.connect(dbURI)
     .then(() => {
         console.log('MongoDB Atlas Connected Successfully! ☁️');
-        // 🔥 දැන් ෆන්ක්ෂන් එක උඩින් තියෙන නිසා මෙතනදී බය නැතුව රන් කරන්න පුළුවන්!
         emitLeaderboard();
     })
     .catch(err => console.log('MongoDB Atlas Connection Error:', err));
@@ -115,7 +108,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 
-// 🎮 GAME ENGINE (DICE ROLLING SYSTEM)
+// 🎮 GAME ENGINE (DYNAMIC DICE ROLLING SYSTEM)
 let timer = 30;
 let currentResult = null;
 let isRoundProcessing = false; 
@@ -139,21 +132,37 @@ setInterval(async () => {
                 let prize = 0;
                 let status = 'LOSS'; 
 
-                if (user.currentBet.number === currentResult) {
-                    prize = user.currentBet.amount * 2;
-                    user.balance += prize;
+                // 🎯 Dynamic Win Condition Logic
+                // දැනට default බෙට් ටයිප් එක NUMBER (අංක 1-6) නිසා කෙලින්ම මැච් කරනවා.
+                // පස්සේ කාලෙක 'ODD' හෝ 'EVEN' ආවොත් මෙතනට තව 'else if' කෑල්ලක් දාන්න විතරයි තියෙන්නේ.
+                const currentBetType = user.currentBet.betType || 'NUMBER';
+                
+                if (currentBetType === 'NUMBER' && user.currentBet.number === currentResult) {
                     isWin = true;
+                } else if (currentBetType === 'EVEN' && currentResult % 2 === 0) {
+                    isWin = true;
+                } else if (currentBetType === 'ODD' && currentResult % 2 !== 0) {
+                    isWin = true;
+                }
+
+                if (isWin) {
+                    // 🔥 හාඩ්කෝඩ් නොකර, ඔට්ටුව දාද්දීම හැදුණු potentialPayout එක කෙලින්ම දිනපු කෙනාට දෙනවා
+                    // (Fallback එකක් විදිහට පරණ ඩේටා වල potentialPayout නැති නිසා මුදල 2න් ගුණ කරනවා)
+                    prize = user.currentBet.potentialPayout || (user.currentBet.amount * 2);
+                    user.balance += prize;
                     status = 'WIN'; 
                 }
 
-                // 📝 බෙට් හිස්ට්‍රි එක ඩේටාබේස් එකට දමමු
+                // 📝 බෙට් හිස්ට්‍රි එක ඩේටාබේස් එකට දමමු (අලුත් ෆීල්ඩ්ස් ද සමග)
                 await Bet.create({
                     userId: user._id,
                     selectedNumber: user.currentBet.number,
                     amount: user.currentBet.amount,
                     diceResult: currentResult,
                     status: status,
-                    payout: prize
+                    payout: prize,
+                    betType: currentBetType, // පස්සේ කාලෙක ඇඩ්මින් පැනල් එකේ ඇනලිටික්ස් බලන්න ලේසියි
+                    multiplier: user.currentBet.multiplier || 2
                 });
 
                 io.emit(`round_result_${user._id}`, {
@@ -166,8 +175,13 @@ setInterval(async () => {
                     newBalance: user.balance
                 });
 
+                // 🔄 රවුන්ඩ් එක ඉවර නිසා බෙට් එක ක්ලියර් කිරීම
                 user.currentBet.number = null;
                 user.currentBet.amount = 0;
+                user.currentBet.multiplier = null;
+                user.currentBet.potentialPayout = null;
+                user.currentBet.betType = null;
+                
                 await user.save();
             }
 
@@ -178,8 +192,6 @@ setInterval(async () => {
             io.emit('balance_updated');
             
             emitLeaderboard();
-
-            // 🔄 ⚡ ලයිව් හිස්ට්‍රි අප්ඩේට් ට්‍රිගර් එක
             io.emit('history_updated');
 
         } catch (err) {
@@ -199,31 +211,45 @@ io.on('connection', (socket) => {
     emitLeaderboard();
 
     socket.on('place_bet', async (data) => {
-        const { userId, number, amount } = data;
+        const { userId, number, amount, betType } = data; // betType: 'NUMBER', 'EVEN', 'ODD' වගේ එවන්න පුළුවන්
         try {
             const user = await User.findById(userId);
             
-            if (timer <= 5) {
-                socket.emit('bet_error', { message: 'කාලය අවසානයි! අවසන් තත්පර 5 තුළ ඔට්ටු තැබිය නොහැක. 🔒' });
+            if (!user) return;
+            if (user.balance < amount) {
+                socket.emit('bet_error', { message: 'ඔබ සතුව ප්‍රමාණවත් මුදලක් නොමැත!' });
                 return;
             }
 
-            if (!user || user.balance < amount) {
-                socket.emit('bet_error', { message: 'ඔට්ටුව තැබීමට ප්‍රමාණවත් මුදලක් නොමැත හෝ ගිණුම අවලංගුයි.' });
-                return;
-            }
+            // --- [DYNAMIC MULTIPLIER LOGIC] ---
+            let currentMultiplier = 2; // Default 1-6 අංක වලට 2x දෙනවා
+            let assignedBetType = betType || 'NUMBER';
 
-            user.balance -= amount;
-            user.currentBet.number = Number(number);
+            if (assignedBetType === 'EVEN' || assignedBetType === 'ODD') {
+                currentMultiplier = 1.9; // උදාහරණයක් විදිහට ඔත්තේ/ඉරට්ටේ වලට 1.9x දෙනවා නම්
+            } else if (assignedBetType === 'SPECIAL_NUMBER') {
+                currentMultiplier = 5; 
+            }
+            
+            const potentialPayout = Number(amount) * currentMultiplier;
+            // ----------------------------------
+
+            user.balance -= Number(amount);
+            user.currentBet.number = number !== undefined ? Number(number) : null; // Odd/Even වලදී number එකක් ඕන වෙන්නේ නෑ
             user.currentBet.amount = Number(amount);
+            
+            // 🔥 අනාගතය සඳහා ස්කීමා එකට සේව් වන කෑලි ටික
+            user.currentBet.betType = assignedBetType;
+            user.currentBet.multiplier = currentMultiplier; 
+            user.currentBet.potentialPayout = potentialPayout; 
+            
             await user.save();
-
+            
             emitLeaderboard();
-
             socket.emit('bet_success', { message: 'ඔට්ටුව සාර්ථකයි!', updatedUser: user });
         } catch (err) {
-            console.error("Server Bet Error:", err);
-            socket.emit('bet_error', { message: 'සර්වර් දෝෂයකි. නැවත උත්සාහ කරන්න.' });
+            console.error("Place Bet Socket Error:", err);
+            socket.emit('bet_error', { message: 'Server Error. කරුණාකර නැවත උත්සාහ කරන්න.' });
         }
     });
 });

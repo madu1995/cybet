@@ -27,10 +27,22 @@ const BetSchema = new mongoose.Schema({
         enum: ['PENDING', 'WIN', 'LOSS'],
         default: 'PENDING'
     },
+    betType: { 
+        type: String, 
+        required: true 
+    },
+    multiplier: {
+         type: Number, 
+         required: true
+    },
+    potentialPayout: {
+         type: Number, 
+         default: 0 
+    },
     payout: {
         type: Number,
         default: 0 // දින්නොත් ලැබෙන ගාණ, පැරදුණොත් 0
     }
-}, { timestamps: true }); // CreatedAt මඟින් වෙලාව ඔටෝ හැදෙනවා හිස්ට්‍රි එක සෝට් කරන්න
+}, { timestamps: true }); // CreatedAt මඟින් වෙලාව ඔටෝ හැදෙනවා හිස්ට්රි එක සෝට් කරන්න
 
 module.exports = mongoose.model('Bet', BetSchema);
