@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserManagement from './UserManagement';
+import DepositRequests from './DepositRequests';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
@@ -142,17 +143,7 @@ const AdminDashboard = () => {
                 {activeTab === 'users' && <UserManagement />}
 
                 {/* 3️⃣ TAB එක DEPOSITS නම් දැනට සාමාන්‍ය TEXT එකක් පෙන්වන්න (ඊළඟට මේක හදමු) */}
-                {activeTab === 'deposits' && (
-                    <div>
-                        <div className="flex justify-between items-center mb-8 border-b border-gray-850 pb-4">
-                            <div>
-                                <h2 className="text-xl font-bold tracking-tight text-white font-mono">Deposit Requests</h2>
-                                <p className="text-xs text-gray-500 mt-1">Review and approve player deposit slips</p>
-                            </div>
-                        </div>
-                        <div className="text-center text-gray-500 text-xs font-mono mt-20">Deposit Requests view is under construction...</div>
-                    </div>
-                )}
+                {activeTab === 'deposits' && <DepositRequests />}
                 
             </div>
         </div>

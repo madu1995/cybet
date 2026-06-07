@@ -72,7 +72,7 @@ const UserManagement = () => {
     );
 
     return (
-        <div className="h-full flex flex-col bg-[#070b19] text-white">
+        <div className="h-full flex flex-col text-white">
             {/* Header Section */}
             {/* 🎛️ UPDATED HEADER SECTION (MATCHED WITH OVERVIEW DASHBOARD) */}
 <div className="flex justify-between items-center mb-8 border-b border-gray-850 pb-4 flex-shrink-0">

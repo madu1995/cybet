@@ -18,3 +18,13 @@ Content-Type: application/json
     "username": "testuser123",
     "password": "password123"
 }
+
+### බොරු ඩිපොසිට් රික්වෙස්ට් එකක් ඩේටාබේස් එකට දැමීම
+POST http://localhost:5000/api/admin/deposits/test-create
+Content-Type: application/json
+
+{
+  "username": "hichcha",
+  "amount": 1000,
+  "slipUrl": "https://placehold.co/400x500?text=Cybet+Test+Slip+15000"
+}

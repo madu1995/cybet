@@ -3,6 +3,8 @@ const router = express.Router();
 const User = require('../models/User');
 const Bet = require('../models/Bet');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
+const adminController = require('../controllers/adminController');
+
 
 
 // 📊 1. ADMIN DASHBOARD OVERVIEW STATS (DYNAMIC LIABILITY WORKING WITH MULTIPLIERS)
@@ -134,6 +136,40 @@ router.put('/users/:id/balance', protect, adminOnly, async (req, res) => {
     } catch (err) {
         console.error("Adjust Balance Error:", err);
         return res.status(500).json({ success: false, message: 'Server Error' });
+    }
+});
+
+// 1. Pending deposits ලැයිස්තුව ගන්න
+router.get('/deposits/pending', protect, adminOnly, adminController.getPendingDeposits);
+
+// 2. Deposit එකක් approve/reject කරන්න
+router.put('/deposits/:transactionId/action', protect, adminOnly, adminController.handleDepositAction);
+
+
+// 🧪 ටෙස්ට් කරගන්න විතරක් තාවකාලිකව දාන Route එකක්
+const Transaction = require('../models/Transaction');
+
+router.post('/deposits/test-create', async (req, res) => {
+    try {
+        const { username, amount, slipUrl } = req.body;
+        // ඩේටාබේස් එකේ ඉන්න පලවෙනි යූසර්ව හරි, නම මැච් වෙන යූසර්ව හරි ගන්නවා
+        let user = await User.findOne({ username });
+        if (!user) user = await User.findOne(); // යූසර් කෙනෙක් නැත්නම් ඉන්න පලවෙනි කෙනාව ගන්නවා
+        
+        if (!user) return res.status(404).json({ message: "No users found in database to link" });
+
+        const newDeposit = new Transaction({
+            userId: user._id,
+            amount: amount,
+            slipUrl: slipUrl,
+            status: 'pending',
+            type: 'deposit'
+        });
+
+        await newDeposit.save();
+        res.status(201).json({ success: true, message: "Test Deposit Request Created!", data: newDeposit });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
